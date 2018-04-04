@@ -776,6 +776,20 @@ EOF
     lambda{ req.POST }.should.not.raise("input re-processed!")
   end
 
+  should "consistently raise EOFError on bad multipart form data" do
+    input = <<EOF
+--AaB03x\r
+content-disposition: form-data; name="huge"; filename="huge"\r
+EOF
+    req = Rack::Request.new Rack::MockRequest.env_for("/",
+                      "CONTENT_TYPE" => "multipart/form-data, boundary=AaB03x",
+                      "CONTENT_LENGTH" => input.size,
+                      :input => input)
+
+    lambda { req.POST }.should.raise(EOFError)
+    lambda { req.POST }.should.raise(EOFError)
+  end
+
   should "conform to the Rack spec" do
     app = lambda { |env|
       content = Rack::Request.new(env).POST["file"].inspect
